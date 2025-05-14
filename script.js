@@ -3,9 +3,9 @@
 document.querySelector('form').addEventListener('submit', async function (e) {
     e.preventDefault();
 
-    // Get the active input elements based on the toggle selection
+    // active input elements based on the toggle
     const urlInput = document.getElementById('videoUrl');
-    const fileInput = document.getElementById('localMediaFile'); // Fixed ID to match HTML
+    const fileInput = document.getElementById('localMediaFile');
     const isYouTubeMode = document.getElementById('youtubeToggle').checked;
 
     // Store the selected file before potentially clearing the input
@@ -39,6 +39,17 @@ document.querySelector('form').addEventListener('submit', async function (e) {
 
             console.log('Extracted Video ID:', videoId);
             const transcript = await fetchTranscript(videoId);
+
+            // Save to localStorage
+            saveToLocalStorage({
+                id: videoId,
+                type: 'youtube',
+                title: await fetchVideoTitle(videoId),
+                sourceUrl: videoUrl,
+                transcript: transcript,
+                timestamp: new Date().toISOString()
+            });
+
             displayTranscript(videoId, transcript, 'youtube');
         } else {
             // Handle local file
@@ -51,6 +62,18 @@ document.querySelector('form').addEventListener('submit', async function (e) {
             }
 
             const transcript = await processLocalFile(selectedFile);
+            const fileId = Date.now().toString();
+
+            // Save to localStorage
+            saveToLocalStorage({
+                id: fileId,
+                type: 'local',
+                title: selectedFile.name,
+                sourceUrl: null,
+                transcript: transcript,
+                timestamp: new Date().toISOString()
+            });
+
             displayTranscript(URL.createObjectURL(selectedFile), transcript, 'local');
         }
     } catch (error) {
@@ -63,7 +86,35 @@ document.querySelector('form').addEventListener('submit', async function (e) {
     }
 });
 
-// Improved URL validation
+// Fetch YouTube video title
+async function fetchVideoTitle(videoId) {
+    try {
+        const response = await fetch(`http://localhost:3000/videoInfo?video_id=${videoId}`);
+        const data = await response.json();
+
+        if (!response.ok) {
+            return 'YouTube Video';
+        }
+
+        return data.title || 'YouTube Video';
+    } catch (error) {
+        console.error('Error fetching video title:', error);
+        return 'YouTube Video';
+    }
+}
+
+// Save summary to localStorage
+function saveToLocalStorage(summaryData) {
+    // Get existing summaries or initialize empty array
+    const existingSummaries = JSON.parse(localStorage.getItem('autoNotesSummaries') || '[]');
+
+    // Add new summary to the beginning of the array
+    existingSummaries.unshift(summaryData);
+    const limitedSummaries = existingSummaries.slice(0, 20);
+    localStorage.setItem('autoNotesSummaries', JSON.stringify(limitedSummaries));
+}
+
+//URL validation
 function isValidYouTubeUrl(url) {
     const patterns = [
         /^https?:\/\/(www\.)?youtube\.com\/watch\?v=[\w-]{11}/,
@@ -74,7 +125,7 @@ function isValidYouTubeUrl(url) {
     return patterns.some(pattern => pattern.test(url));
 }
 
-// Check if file is a valid media file (video or audio)
+//valid media file (video or audio)
 function isValidMediaFile(file) {
     const validTypes = [
         // Video types
@@ -93,14 +144,14 @@ function isValidMediaFile(file) {
     return validTypes.includes(file.type);
 }
 
-// More robust video ID extraction
+//video ID extraction
 function extractVideoId(url) {
     const regex = /(?:\/|%3D|v=|vi=)([\w-]{11})(?:[%#?&]|$)/;
     const match = url.match(regex);
     return match ? match[1] : null;
 }
 
-// Fetch function for YouTube transcripts
+// Fetch function for YouTube Summary
 async function fetchTranscript(videoId) {
     try {
         const response = await fetch('http://localhost:3000/youtubeSummary', {
@@ -241,6 +292,7 @@ function displayTranscript(source, transcript, sourceType) {
         <div class="summary-controls">
             <button id="copyBtn" class="control-btn"><i class="fas fa-copy"></i> Copy</button>
             <button id="downloadBtn" class="control-btn"><i class="fas fa-download"></i> Download</button>
+            <button id="viewRecentBtn" class="control-btn"><i class="fas fa-history"></i> View Recent</button>
         </div>
         <div class="summary-content">
             ${formatStructuredSummary(transcript)}
@@ -258,6 +310,11 @@ function displayTranscript(source, transcript, sourceType) {
 
     document.getElementById('downloadBtn').addEventListener('click', () => {
         downloadSummary(transcript, sourceType === 'youtube' ? source : 'media-summary');
+    });
+
+    // Add event listener for view recent button
+    document.getElementById('viewRecentBtn').addEventListener('click', () => {
+        window.location.href = './recent.html';
     });
 
     // Scroll to results
@@ -318,7 +375,7 @@ function showNotification(message) {
     }, 2000);
 }
 
-// Enhanced formatting function for structured content
+//structured content
 function formatStructuredSummary(text) {
     // Convert markdown-style headings
     let formatted = text
