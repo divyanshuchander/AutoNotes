@@ -11,7 +11,7 @@
 - Python 3.x
 - [Ollama](https://ollama.com) installed
 - FFmpeg installed
-- MLX Whisper installed
+- Whisper installed(MLX_Whisper for Apple Silicon)
 - `Mjh1051702/youtube:latest` model pulled via Ollama
 
 ### 1. Clone the Repository
@@ -25,6 +25,7 @@ cd AutoNotes
 
 ```bash
 pip -m venv <virtual env name>
+source ./<envName>/bin/activate
 pip install -r requirements.txt
 ```
 ### 3. Install Ollama and pull required LLM Model
