@@ -1,5 +1,6 @@
 # Ignore samples directory
 /Samples/
+.DS_Store
 
 # Ignore everything in the backend folder
 /backend/*
