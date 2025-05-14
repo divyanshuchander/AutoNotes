@@ -1,0 +1,8 @@
+# Ignore samples directory
+/Samples/
+
+# Ignore everything in the backend folder
+/backend/*
+
+# But keep backendUpload.py
+!/backend/backendFileUpload.py
